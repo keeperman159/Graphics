@@ -769,6 +769,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed assertion failure when changing resolution to compositor layers after using AOVs (case 1265023) 
 - Fixed flickering layers in graphics compositor (case 1264552)
 - Fix issue causing the editor field not updating the disc area light radius.
+- Fixed issue when setting the composition graph to None in the graphics compositor (case 1263350)
 
 ### Changed
 - Improve MIP selection for decals on Transparents
