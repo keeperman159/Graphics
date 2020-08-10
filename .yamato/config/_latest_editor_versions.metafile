@@ -26,16 +26,22 @@ editor_version_names:
 editor_versions:
   2020.2_latest_internal:
     display_name: 2020.2 latest internal
-    revision: 48a6bb4f7ce1
-    version: 2020.2.0a20
+    revision_macos: 48a6bb4f7ce1
+    revision_windows: 48a6bb4f7ce1
+    version_macos: 2020.2.0a20
+    version_windows: 2020.2.0a20
   2020.2_latest_public:
     display_name: 2020.2 latest public
-    revision: 8037ac78137e
-    version: 2020.2.0a19
+    revision_macos: 8037ac78137e
+    revision_windows: 8037ac78137e
+    version_macos: 2020.2.0a19
+    version_windows: 2020.2.0a19
   2020.2_staging:
     display_name: 2020.2 staging
-    revision: 2de78afbf55b2a0e21af599ae9a27f5ac63b894d
-    version: ''
+    revision_macos: fb1ab0bdb651069df55e127a17f07a8eefa25301
+    revision_windows: fb1ab0bdb651069df55e127a17f07a8eefa25301
+    version_macos: ''
+    version_windows: ''
   project_revision:
     display_name: project revision
     revision: 8037ac78137e
