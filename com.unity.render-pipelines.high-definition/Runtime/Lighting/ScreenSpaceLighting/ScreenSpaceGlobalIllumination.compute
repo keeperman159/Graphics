@@ -48,25 +48,20 @@ bool RayMarch(float3 positionWS, float3 sampleDir, float3 normalWS, float2 posit
     // Initialize ray pos to invalid value
     rayPos = float3(-1.0, -1.0, -1.0);
 
-    // Compute the sampled position in world space (one meter away from the original point along the sampled direction)
-    float3 sampledPosWS  = positionWS + sampleDir * _IndirectDiffuseMaximalRadius;
-
-    // Convert the sampled position to NDC, then to SS
-    float3 sampledPosNDC = ComputeNormalizedDeviceCoordinatesWithZ(sampledPosWS, UNITY_MATRIX_VP); // Jittered
-    float3 sampledPosSS  = float3(sampledPosNDC.xy * _ScreenSize.xy, sampledPosNDC.z);
-
     // Due to a warning on Vulkan and Metal if returning early, this is the only way we found to avoid it.
     bool status = false;
 
     // If the point is behind the camera or the ray is invalid, this ray should not be cast
-    if (!killRay || (sampledPosSS.z <= 0))
+    if (!killRay)
     {
         // We start tracing from the center of the current pixel, and do so up to the far plane.
         float3 rayOrigin = float3(positionSS + 0.5, deviceDepth);
 
-        // Compute the ray direction in screen space
-        float3 rayDir = (sampledPosSS - rayOrigin);
+        float3 sampledPosWS  = positionWS + sampleDir * 0.01f;
+        float3 sampledPosNDC = ComputeNormalizedDeviceCoordinatesWithZ(sampledPosWS, UNITY_MATRIX_VP); // Jittered
+        float3 sampledPosSS  = float3(sampledPosNDC.xy * _ScreenSize.xy, sampledPosNDC.z);
 
+        float3 rayDir     = (sampledPosSS - rayOrigin);
         // Compute the reciprocal of the direction (not sure why tho ftm)
         float3 rcpRayDir  = rcp(rayDir);
 
@@ -86,14 +81,14 @@ bool RayMarch(float3 positionWS, float3 sampleDir, float3 normalWS, float2 posit
             const float halfTexel = 0.5;
 
             float3 bounds;
-            bounds.x = clamp(sampledPosSS.x, halfTexel, _ScreenSize.x - halfTexel);
-            bounds.y = clamp(sampledPosSS.y, halfTexel, _ScreenSize.y - halfTexel);
+            bounds.x = clamp(rayOrigin.x + rayDir.x * 100.0, halfTexel, _ScreenSize.x - halfTexel);
+            bounds.y = clamp(rayOrigin.y + rayDir.y * 100.0, halfTexel, _ScreenSize.y - halfTexel);
             // If we do not want to intersect the skybox, it is more efficient to not trace too far.
             float maxDepth = -0.00000024; // 2^-22
             bounds.z = (rcpRayDir.z >= 0) ? 1 : maxDepth;
 
             float3 dist = bounds * rcpRayDir - (rayOrigin * rcpRayDir);
-            tMax = Min3(dist.x, dist.y, dist.z);
+            tMax = Min3(dist.x, dist.y, dist.z) * _IndirectDiffuseMaximalRadius;
         }
 
         // Start ray marching from the next texel to avoid self-intersections.
@@ -268,6 +263,9 @@ TEXTURE2D_X(_HistoryDepthTexture);
 // Output indirect diffuse texture 
 RW_TEXTURE2D_X(float4, _IndirectDiffuseTextureRW);
 
+// The maximal difference in depth that is considered acceptable to read from the color pyramid
+#define DEPTH_DIFFERENCE_THRESHOLD 0.1
+
 [numthreads(INDIRECT_DIFFUSE_TILE_SIZE, INDIRECT_DIFFUSE_TILE_SIZE, 1)]
 void REPROJECT_GLOBAL_ILLUMINATION(uint3 dispatchThreadId : SV_DispatchThreadID, uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
 {
@@ -318,7 +316,7 @@ void REPROJECT_GLOBAL_ILLUMINATION(uint3 dispatchThreadId : SV_DispatchThreadID,
     // Grab the depth of the hit point and reject the history buffer if the depth is too different
     // TODO: Find a better metric
     float hitPointHistoryDepth = LOAD_TEXTURE2D_X(_HistoryDepthTexture, prevFrameNDC * _ScreenSize.xy).x;
-    if (abs(hitPointHistoryDepth - hitPointDepth) > 0.01)
+    if (abs(hitPointHistoryDepth - hitPointDepth) > DEPTH_DIFFERENCE_THRESHOLD)
         invalid = true;
 
     // Based on if the intersection was valid (or not, pick a source for the lighting)

@@ -235,10 +235,10 @@ void TEMPORAL_FILTER(uint3 dispatchThreadId : SV_DispatchThreadID
     else
     {
         // Otherwise we compute the accumulation factor
-        accumulationFactor = sampleCount >= 8.0 ? 0.97 : (sampleCount / (sampleCount + 1.0));
+        accumulationFactor = sampleCount >= 16.0 ? 0.97 : (sampleCount / (sampleCount + 1.0));
 
         // Update the sample count
-        sampleCount = min(sampleCount + 1.0, 8.0);
+        sampleCount = min(sampleCount + 1.0, 16.0);
 
         // If the history pixel was moving, we descide to throw partially the history
         // TODO: Expose this as a parameter

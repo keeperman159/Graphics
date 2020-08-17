@@ -90,7 +90,7 @@ namespace UnityEngine.Rendering.HighDefinition
             cmd.SetGlobalTexture(HDShaderIDs._IndirectDiffuseTexture, TextureXR.GetBlackTexture());
         }
 
-        void RenderSSGI(HDCamera hdCamera, CommandBuffer cmd, ScriptableRenderContext renderContext, int frameCount)
+        void RenderSSGI(HDCamera hdCamera, CommandBuffer cmd, ScriptableRenderContext renderContext, ref ShaderVariablesGlobal shaderVariablesGlobal)
         {
             // Grab the global illumination volume component
             GlobalIllumination giSettings = hdCamera.volumeStack.GetComponent<GlobalIllumination>();
@@ -136,6 +136,11 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 // Fetch the right tracing kernel
                 int currentKernel = giSettings.fullResolutionSS ? m_TraceGlobalIlluminationKernel : m_TraceGlobalIlluminationHalfKernel;
+
+                // Update global constant buffer
+                int previousFrameIndex = shaderVariablesGlobal._RaytracingFrameIndex;
+                shaderVariablesGlobal._RaytracingFrameIndex = RayTracingFrameIndex(hdCamera, 16);
+                ConstantBuffer.PushGlobal(cmd, shaderVariablesGlobal, HDShaderIDs._ShaderVariablesGlobal);
 
                 // Inject all the input scalars
                 float n = hdCamera.camera.nearClipPlane;
@@ -230,6 +235,10 @@ namespace UnityEngine.Rendering.HighDefinition
                     // Upscale the buffer to full resolution
                     cmd.DispatchCompute(bilateralUpsampleCS, m_BilateralUpSampleColorTMKernel, numTilesXHR, numTilesYHR, hdCamera.viewCount);
                 }
+
+                // Restore the previous frame index
+                shaderVariablesGlobal._RaytracingFrameIndex = previousFrameIndex;
+                ConstantBuffer.PushGlobal(cmd, shaderVariablesGlobal, HDShaderIDs._ShaderVariablesGlobal);
 
                 (RenderPipelineManager.currentPipeline as HDRenderPipeline).PushFullScreenDebugTexture(hdCamera, cmd, m_IndirectDiffuseBuffer0, FullScreenDebugMode.ScreenSpaceGlobalIllumination);
             }
